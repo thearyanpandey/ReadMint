@@ -1,12 +1,17 @@
-import express from 'express';
+import express, { application } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { Octokit } from '@octokit/rest';
+import { selectKeyFiles } from './utils/fileFilters.js';
 
 const app = express();
 dotenv.config();
-app.use(cors());
 app.use(express.json());
+
+app.use(express.json({limit: '50mb'}));
+app.use(express.urlencoded({limit: '50mb', extended: true}));
+
+app.use(cors());
 
 //Initialize the Shared Client
 const sharedOctokit = new Octokit({
@@ -177,6 +182,31 @@ app.post('/api/validate', async (req, res) => {
         return res.status(500).json({error: "Internal Server Error"});
     }
 });
+
+app.post('/api/filter-files', (req,res) => {
+    //Expects the 'tree' array we got from /api/structure
+    //and an optional 'subpath' if the user clicked a monorepo folder
+
+    const {tree, subpath} = req.body;
+
+    if(!tree || !Array.isArray(tree)){
+        return res.status(400).json({error: "Invalid tree data provided"});
+    }
+
+    try {
+        const selectedFiles = selectKeyFiles(tree, subpath);
+
+        return res.json({
+            status: "success",
+            selected_count: selectedFiles.length,
+            files: selectedFiles
+        })
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({error: "Filtering failed"});
+    }
+
+})
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
