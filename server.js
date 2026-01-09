@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import { Octokit } from '@octokit/rest';
 import { selectKeyFiles } from './utils/fileFilters.js';
+import { fetchFileContents } from './utils/contentFetcher.js';
 
 const app = express();
 dotenv.config();
@@ -207,6 +208,29 @@ app.post('/api/filter-files', (req,res) => {
     }
 
 })
+
+app.post('/api/fetch-content', async (req, res) => {
+    const {owner, repo, branch, filePaths, userToken} = req.body;
+    
+    if(!filePaths || filePaths.length === 0){
+        return res.status(400).json({error: "No file paths provided"});
+    }
+
+    //Use user token if provided otherwise shared 
+    const token = userToken || process.env.GITHUB_SHARED_TOKEN;
+
+    try {
+        const contentMap = await fetchFileContents(filePaths, owner, repo, branch, token);
+        return res.json({
+            status: "success",
+            data: contentMap
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({error: "Content fetch failed"});
+    }
+
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
