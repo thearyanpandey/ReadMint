@@ -4,6 +4,7 @@ import cors from 'cors';
 import { Octokit } from '@octokit/rest';
 import { selectKeyFiles } from './utils/fileFilters.js';
 import { fetchFileContents } from './utils/contentFetcher.js';
+import { generateDocumentation } from './utils/gemini.js';
 
 const app = express();
 dotenv.config();
@@ -231,6 +232,25 @@ app.post('/api/fetch-content', async (req, res) => {
     }
 
 });
+
+app.post('/api/generate', async (req, res) => {
+    const {tree, contentMap} = req.body;
+
+    if(!contentMap || !tree){
+        return res.status(400).json({error: "Missing tree or content map"});
+    }
+
+    try {
+        const docData = await generateDocumentation(tree, contentMap);
+
+        return res.json({
+            status: "success",
+            data: docData
+        });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+})
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

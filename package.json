@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/thearyanpandey/ReadMint#readme",
   "dependencies": {
+    "@google/genai": "^1.35.0",
     "@octokit/rest": "^22.0.1",
     "axios": "^1.13.2",
     "cors": "^2.8.5",
