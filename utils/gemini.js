@@ -1,6 +1,21 @@
 import {GoogleGenAI} from "@google/genai";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const ai = new GoogleGenAI({apiKey: process.env.GOOGLE_API_KEY});
+// Get the current file's directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, "../config.env") });
+
+// Debug: Check if API key is loaded
+console.log("API Key loaded:", !!process.env.GOOGLE_API_KEY);
+console.log("First 10 chars:", process.env.GOOGLE_API_KEY?.substring(0, 10));
+
+const ai = new GoogleGenAI({
+    apiKey: process.env.GOOGLE_API_KEY
+});
 
 const generatePrompt = (fileTree, contentMap) => {
     //1. Convert Tree to a visual string (like the 'tree' command)
@@ -29,10 +44,14 @@ const generatePrompt = (fileTree, contentMap) => {
 
     CONTEXT:
     1. **Project Structure**:
-    ${treeString}
+    ${fileTree.slice(0, 200).map(f => f.path).join('\n')}
 
     2. **Key File Contents**:
-    ${filesContext}
+    ${Object.entries(contentMap).map(([path, content]) => `
+    --- START OF FILE: ${path} ---
+    ${content}
+    --- END OF FILE: ${path} ---
+    `).join('\n')}
 
     INSTRUCTIONS:
     Analyze the code logic, dependencies, and architecture. 
@@ -67,10 +86,23 @@ export const generateDocumentation = async (fileTree, contentMap) => {
 
         console.log("Sending prompt to Gemini....");
         const response = result.text;
-
         console.log("Response from generateDocu...", response);
+        console.log(response.substring(0,500));
 
-        return JSON.parse(response);
+        let cleanedText = response.trim();
+
+         if (cleanedText.startsWith('```json')) {
+            cleanedText = cleanedText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanedText.startsWith('```')) {
+            cleanedText = cleanedText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+
+        // ✅ Parse JSON safely
+        const parsed = JSON.parse(cleanedText);
+        
+        console.log("✅ Successfully parsed documentation");
+        return parsed;
+        
     } catch (error) {
         console.error("Gemini Error:", error);
         throw new Error("Failed to generate Documentation");
