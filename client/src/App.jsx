@@ -1,35 +1,67 @@
-import { useState } from 'react';
+import { use, useState } from 'react';
 import { api } from './api';
-import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Github, Loader2, AlertCircle, CheckCircle2, FolderTree, FileText } from 'lucide-react';
 
 function App() {
   const [url, setUrl] = useState('');
-  const [status, setStatus] = useState('idle'); // idle, loading, success, error, auth_required
+  const [status, setStatus] = useState('idle');
   const [repoData, setRepoData] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [token, setToken] = useState(''); // For private repos
-
+  const [token, setToken] = useState(''); 
+  const [uiPhase, setUiPhase] = useState('input');
+  const [treeData, setTreeData] = useState(null);
+  const [monorepoCandidates, setMonorepoCandidates] = useState([]);
+  const [seletedRoot, setSelectedRoot] = useState('');
+ 
   const handleValidate = async () => {
     setStatus('loading');
     setErrorMsg('');
     
     try {
-      const res = await api.validateRepo(url, token);
-      
-      if (res.status === 'success') {
-        setRepoData(res.data);
-        setStatus('success');
-      } else if (res.status === 'auth_required') {
-        setStatus('auth_required');
+      const valRes = await api.validateRepo(url, token);
+
+      if(valRes.status = 'success'){
+        setRepoData(valRes.data);
+
+        await fetchStructure(valRes.data.owner, valRes.data.repo, valRes.data.default_branch, token);
+      } else if (valRes.status === 'auth_required'){
+        setStatus('aut_required');
       } else {
         setStatus('error');
-        setErrorMsg(res.message || 'Validation failed');
+        setErrorMsg(valRes.message || 'Validation failed');
       }
     } catch (err) {
+      console.error(err);
       setStatus('error');
       setErrorMsg(err.response?.data?.error || 'Failed to connect to server');
     }
   };
+
+  const fetchStructure = async (owner, repo, branch, userToken) => {
+    try {
+      const res = await api.getStructure(owner, repo, branch, userToken);
+
+      if (res.status === 'success') {
+        setTreeData(res.data.tree);
+
+        if(res.data.monorepo_analysis.is_monorepo){
+          setMonorepoCandidates(res.data.monorepo_analysis.candidates);
+          setUiPhase('selection')
+        } else {
+          setSelectedRoot('');
+          startGenerationFlow(res.data.tree, '');
+        }
+      }
+    } catch (error) {
+      setStatus('error');
+      setErrorMsg('Failed to fetch file structure')
+    }
+  }
+
+  const startGenerationFlow = async(tree, rootPath) => {
+    setUiPhase('processing');
+    console.log("Ready to generate for: ", rootPath || "Root");
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
@@ -60,6 +92,58 @@ function App() {
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               />
             </div>
+
+            {/* PHASE 2: Monorepo Selection */}
+          {uiPhase === 'selection' && (
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 shadow-xl animate-in fade-in slide-in-from-bottom-4">
+              <div className="text-left mb-4">
+                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                  <FolderTree className="text-blue-400" />
+                  Multiple Projects Detected
+                </h2>
+                <p className="text-slate-400 text-sm">
+                  This looks like a monorepo. Which part do you want to document?
+                </p>
+              </div>
+
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                {/* Option 1: The Root */}
+                <button
+                  onClick={() => startGenerationFlow(treeData, '')}
+                  className="w-full flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-700 hover:border-blue-500 hover:bg-slate-800 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-slate-800 rounded group-hover:bg-blue-500/20 group-hover:text-blue-400 transition-colors">
+                      <Github size={18} />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-white font-medium">Root Repository</div>
+                      <div className="text-xs text-slate-500">Document the entire codebase</div>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Dynamic Options: The Sub-packages */}
+                {monorepoCandidates.map((path) => (
+                  <button
+                    key={path}
+                    onClick={() => startGenerationFlow(treeData, path)}
+                    className="w-full flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-700 hover:border-blue-500 hover:bg-slate-800 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-slate-800 rounded group-hover:bg-blue-500/20 group-hover:text-blue-400 transition-colors">
+                        <FolderTree size={18} />
+                      </div>
+                      <div className="text-left">
+                        <div className="text-white font-medium">{path}</div>
+                        <div className="text-xs text-slate-500">Sub-project</div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
             {/* Private Repo Token Input (Conditional) */}
             {status === 'auth_required' && (
