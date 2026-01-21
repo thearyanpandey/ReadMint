@@ -1,35 +1,68 @@
-import axios from "axios";
+import axios from 'axios';
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://localhost:3000/api';
+
+const client = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
 
 export const api = {
-    //Phase 1
-    validateRepo: async (url, userToken = null) => {
-        const res =await axios.post(`${API_BASE}/validate`, {url, userToken});
-        return res.data;
+    getStructure: async (owner, repo, branch, userToken) => {
+        const response = await client.post('/structure', { owner, repo, branch, userToken });
+        return response.data;
     },
 
-    //Phase 2
-    getStructure: async (owner, repo, branch, userToken = null) => {
-        const res = await axios.post(`${API_BASE}/structure`, {owner, repo, branch, userToken});
-        return res.data;
+    validateRepo: async (url, userToken) => {
+        try {
+            const response = await client.post('/validate', { url, userToken });
+            return response.data;
+        } catch (error) {
+            //Axios throws on 4xx/5xx, return the response data if available 
+            if (error.response) {
+                return error.response.data;
+            }
+            throw error;
+        }
     },
 
-    //Phase 3
-    filterFiles: async (tree, subpath = '') => {
-        const res = await axios.post(`${API_BASE}/filter-files`, {tree, subpath});
-        return res.data;
-    },
-    
-    //Phase 4
-    fetchContent: async (owner, repo, branch, filePaths, userToken = null) => {
-        const res = await axios.post(`${API_BASE}/fetch-content`, {owner, repo, branch, filePaths, userToken});
-        return res.data;
+    filterFiles: async (tree, subpath) => {
+        const response = await client.post('/filter-files', { tree, subpath });
+        return response.data;
     },
 
-    //Phase 5 
-    generateDocs: async (tree, contentMap) => {
-        const res = await axios.post(`${API_BASE}/generate`, {tree, contentMap});
-        return res.data;
+    fetchContent: async (owner, repo, branch, filePaths, userToken) => {
+        const response = await client.post('/fetch-content', {
+            owner,
+            repo,
+            branch,
+            filePaths,
+            userToken
+        });
+        return response.data;
+    },
+
+    generateDocs: async (tree, contentMap, geminiApiKey) => {
+        try {
+            const response = await client.post('/generate', { tree, contentMap, geminiApiKey });
+            return response.data;
+        } catch (error) {
+            if (error.response) {
+                return error.response.data;
+            }
+            throw error;
+        }
+    },
+
+    getVisits: async () => {
+        const response = await client.get('/visits');
+        return response.data;
+    },
+
+    incrementVisits: async () => {
+        const response = await client.post('/visits/increment');
+        return response.data;
     }
-}
+};

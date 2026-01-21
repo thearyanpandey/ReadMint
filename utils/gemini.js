@@ -1,4 +1,4 @@
-import {GoogleGenAI} from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -13,9 +13,11 @@ dotenv.config({ path: path.resolve(__dirname, "../config.env") });
 console.log("API Key loaded:", !!process.env.GOOGLE_API_KEY);
 console.log("First 10 chars:", process.env.GOOGLE_API_KEY?.substring(0, 10));
 
-const ai = new GoogleGenAI({
-    apiKey: process.env.GOOGLE_API_KEY
-});
+const initializeAI = (apiKey) => {
+    return new GoogleGenAI({
+        apiKey: apiKey || process.env.GOOGLE_API_KEY
+    });
+};
 
 const generatePrompt = (fileTree, contentMap) => {
     //1. Convert Tree to a visual string (like the 'tree' command)
@@ -29,7 +31,7 @@ const generatePrompt = (fileTree, contentMap) => {
 
     //2. Format the file contents
     let filesContext = "";
-    for(const [path, content] of Object.entries(contentMap)){
+    for (const [path, content] of Object.entries(contentMap)) {
         filesContext += `
     --- START OF FILE: ${path} ---
     ${content}
@@ -73,13 +75,14 @@ const generatePrompt = (fileTree, contentMap) => {
 `;
 }
 
-export const generateDocumentation = async (fileTree, contentMap) => {
+export const generateDocumentation = async (fileTree, contentMap, apiKey = null) => {
     const prompt = generatePrompt(fileTree, contentMap);
+    const ai = initializeAI(apiKey);
     try {
         const result = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: {
+            model: "gemini-3-flash-preview",
+            contents: prompt,
+            config: {
                 responseMimeType: "application/json",
             }
         });
@@ -87,11 +90,11 @@ export const generateDocumentation = async (fileTree, contentMap) => {
         console.log("Sending prompt to Gemini....");
         const response = result.text;
         console.log("Response from generateDocu...", response);
-        console.log(response.substring(0,500));
+        console.log(response.substring(0, 500));
 
         let cleanedText = response.trim();
 
-         if (cleanedText.startsWith('```json')) {
+        if (cleanedText.startsWith('```json')) {
             cleanedText = cleanedText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
         } else if (cleanedText.startsWith('```')) {
             cleanedText = cleanedText.replace(/^```\s*/, '').replace(/\s*```$/, '');
@@ -99,10 +102,10 @@ export const generateDocumentation = async (fileTree, contentMap) => {
 
         // ✅ Parse JSON safely
         const parsed = JSON.parse(cleanedText);
-        
+
         console.log("✅ Successfully parsed documentation");
         return parsed;
-        
+
     } catch (error) {
         console.error("Gemini Error:", error);
         throw new Error("Failed to generate Documentation");

@@ -1,1 +1,66 @@
 @import "tailwindcss";
+
+@theme {
+  --color-primary: hsl(220, 80%, 55%);
+  --color-primary-hover: hsl(220, 80%, 45%);
+  --color-background: hsl(220, 30%, 98%);
+  --color-surface: hsl(220, 25%, 100%);
+  --color-surface-hover: hsl(220, 25%, 96%);
+  --color-text-main: hsl(220, 40%, 15%);
+  --color-text-muted: hsl(220, 20%, 45%);
+  --color-border: hsl(220, 20%, 90%);
+}
+
+body {
+  @apply bg-[var(--color-background)] text-[var(--color-text-main)] antialiased font-sans;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 40%);
+  min-height: 100vh;
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  @apply bg-white/70 backdrop-blur-xl border border-[var(--color-border)] shadow-xl shadow-slate-200/50;
+}
+
+.glass-button {
+  @apply bg-white/80 backdrop-blur-sm border border-[var(--color-border)] hover:bg-white hover:border-blue-200 transition-all shadow-sm;
+}
+
+/* Layout Utilities */
+.container-centered {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+}
+
+/* Animations */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
