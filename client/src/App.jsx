@@ -5,6 +5,7 @@ import Mermaid from './Mermaid';
 import Modal from './components/ui/Modal';
 import VisitCounter from './components/VisitCounter';
 import { Github, ArrowRight, Check, Download, Loader2, FileText, Copy, Key, Sparkles, ShieldAlert, FolderTree } from 'lucide-react';
+import remarkGfm from 'remark-gfm';
 
 function App() {
   const [url, setUrl] = useState('');
@@ -192,7 +193,7 @@ function App() {
             <FileText size={20} />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-[var(--color-text-main)]">
-            ReadmeGen
+            ReadMint
           </h1>
         </div>
 
@@ -322,7 +323,7 @@ function App() {
                     'Crafting Documentation...'}
               </h2>
               <p className="text-[var(--color-text-muted)]">
-                Using Gemini 1.5 Flash to analyze architecture and logic
+                Using Gemini 3 Flash to analyze architecture and logic
               </p>
             </div>
           </div>
@@ -402,7 +403,15 @@ function App() {
                 />
               ) : (
                 <article className="prose prose-slate prose-lg max-w-none prose-headings:font-bold prose-a:text-blue-600">
-                  <ReactMarkdown>{finalDocs.readme_markdown}</ReactMarkdown>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]} // This enables tables, strikethrough, etc.
+                    components={{
+                      // Optional: You can override specific elements if needed
+                      a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />
+                    }}
+                  >
+                    {finalDocs.readme_markdown}
+                  </ReactMarkdown>
                 </article>
               )}
             </div>

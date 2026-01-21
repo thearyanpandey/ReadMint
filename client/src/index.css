@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+@plugin "@tailwindcss/typography";
+
+
 @theme {
   --color-primary: hsl(220, 80%, 55%);
   --color-primary-hover: hsl(220, 80%, 45%);
