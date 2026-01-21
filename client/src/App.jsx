@@ -25,6 +25,7 @@ function App() {
   const [processingStep, setProcessingStep] = useState('idle');
   const [finalDocs, setFinalDocs] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   // --- Effects ---
 
@@ -339,11 +340,18 @@ function App() {
               </div>
               <div className="flex gap-3">
                 <button
+                  onClick={() => setIsEditing(!isEditing)}
+                  className={`glass-button px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${isEditing ? 'bg-blue-50 border-blue-200 text-blue-600' : ''}`}
+                >
+                  {isEditing ? <Check size={16} /> : <FileText size={16} />}
+                  {isEditing ? 'Done Editing' : 'Edit'}
+                </button>
+                <button
                   onClick={handleCopy}
                   className="glass-button px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
                 >
                   {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-                  {copied ? 'Copied' : 'Copy Markdown'}
+                  {copied ? 'Copied' : 'Copy'}
                 </button>
                 <button
                   onClick={() => {
@@ -385,14 +393,24 @@ function App() {
               )}
 
               {/* Markdown Content */}
-              <article className="prose prose-slate prose-lg max-w-none prose-headings:font-bold prose-a:text-blue-600">
-                <ReactMarkdown>{finalDocs.readme_markdown}</ReactMarkdown>
-              </article>
+              {isEditing ? (
+                <textarea
+                  value={finalDocs.readme_markdown}
+                  onChange={(e) => setFinalDocs(prev => ({ ...prev, readme_markdown: e.target.value }))}
+                  className="w-full h-[600px] p-6 bg-slate-900 text-slate-100 font-mono text-sm rounded-xl border border-[var(--color-border)] focus:ring-2 focus:ring-blue-500 outline-none resize-y"
+                  spellCheck={false}
+                />
+              ) : (
+                <article className="prose prose-slate prose-lg max-w-none prose-headings:font-bold prose-a:text-blue-600">
+                  <ReactMarkdown>{finalDocs.readme_markdown}</ReactMarkdown>
+                </article>
+              )}
             </div>
           </div>
-        )}
+        )
+        }
 
-      </main>
+      </main >
 
       <footer className="w-full py-8 text-center text-[var(--color-text-muted)] text-sm relative z-10">
         <div className="flex justify-center gap-6 mb-4">
@@ -488,7 +506,7 @@ function App() {
         </div>
       </Modal>
 
-    </div>
+    </div >
   );
 }
 
