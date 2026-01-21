@@ -481,12 +481,12 @@ function App() {
       <Modal
         isOpen={showGithubModal}
         onClose={() => setShowGithubModal(false)}
-        title="Private Repository Access"
+        title="Repository Access"
       >
         <div className="space-y-4">
           <div className="bg-amber-50 text-amber-700 p-4 rounded-xl flex items-start gap-3 text-sm">
             <ShieldAlert className="shrink-0 mt-0.5" size={18} />
-            <p>This appears to be a private repository. Please provide a GitHub Personal Access Token (PAT) with <strong>repo</strong> scope to continue.</p>
+            <p>Please provide a GitHub Personal Access Token (PAT) with <strong>repo</strong> scope to continue.</p>
           </div>
 
           <input
