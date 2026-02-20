@@ -4,21 +4,21 @@
 
 
 @theme {
-  --color-primary: hsl(220, 80%, 55%);
-  --color-primary-hover: hsl(220, 80%, 45%);
-  --color-background: hsl(220, 30%, 98%);
-  --color-surface: hsl(220, 25%, 100%);
-  --color-surface-hover: hsl(220, 25%, 96%);
-  --color-text-main: hsl(220, 40%, 15%);
-  --color-text-muted: hsl(220, 20%, 45%);
-  --color-border: hsl(220, 20%, 90%);
+  --color-primary: hsl(257, 100%, 57%);
+  /* Antigravity's bold #5227FF */
+  --color-primary-hover: hsl(257, 100%, 65%);
+  --color-background: hsl(240, 10%, 4%);
+  /* Deep dark gray/black */
+  --color-surface: hsl(240, 10%, 8%);
+  --color-surface-hover: hsl(240, 10%, 12%);
+  --color-text-main: hsl(0, 0%, 100%);
+  /* White text */
+  --color-text-muted: hsl(240, 5%, 65%);
+  --color-border: hsl(240, 10%, 20%);
 }
 
 body {
   @apply bg-[var(--color-background)] text-[var(--color-text-main)] antialiased font-sans;
-  background-image:
-    radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 40%);
   min-height: 100vh;
 }
 
