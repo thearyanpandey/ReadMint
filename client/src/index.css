@@ -4,17 +4,17 @@
 
 
 @theme {
-  --color-primary: hsl(257, 100%, 57%);
-  /* Antigravity's bold #5227FF */
-  --color-primary-hover: hsl(257, 100%, 65%);
-  --color-background: hsl(240, 10%, 4%);
-  /* Deep dark gray/black */
-  --color-surface: hsl(240, 10%, 8%);
-  --color-surface-hover: hsl(240, 10%, 12%);
-  --color-text-main: hsl(0, 0%, 100%);
-  /* White text */
-  --color-text-muted: hsl(240, 5%, 65%);
-  --color-border: hsl(240, 10%, 20%);
+  --color-primary: #4285F4;
+  /* Google Blue */
+  --color-primary-hover: #3367D6;
+  --color-background: #FFFFFF;
+  /* Pure White */
+  --color-surface: #F8F9FA;
+  --color-surface-hover: #F1F3F4;
+  --color-text-main: #202124;
+  /* Dark Charcoal */
+  --color-text-muted: #5F6368;
+  --color-border: #E8EAED;
 }
 
 body {
@@ -67,3 +67,10 @@ body {
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
+
+/* .cormorant-<uniquifier> {
+  font-family: "Cormorant", serif;
+  font-optical-sizing: auto;
+  font-weight: <weight>;
+  font-style: normal;
+} */

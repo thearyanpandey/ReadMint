@@ -13,13 +13,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.use(
+  cors({
+    origin: ["https://readmint.vercel.app", "http://localhost:5174"],
+    methods: ["POST", "GET", "PUT", "DELETE"],  
+    credentials: true,
+  })
+);
 dotenv.config();
-app.use(express.json());
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-app.use(cors());
 
 //Initialize the Shared Client
 const sharedOctokit = new Octokit({
@@ -122,6 +127,10 @@ app.post('/api/structure', async (req, res) => {
             error: "Failed to fetch repository structure. Check permissions or branch name."
         });
     }
+})
+
+app.get('/api/test', (req, res) => {
+    res.json({ message: "Hello World" });
 })
 
 app.post('/api/validate', async (req, res) => {
@@ -256,6 +265,10 @@ app.post('/api/generate', async (req, res) => {
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }
+})
+
+app.get('/api/test', (req, res) => {
+    res.json({ message: "Hello World" });
 })
 
 // --- Visit Counter Endpoints ---

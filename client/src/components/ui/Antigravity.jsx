@@ -1,156 +1,112 @@
 /* eslint-disable react/no-unknown-property */
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 
-const AntigravityInner = ({
-  count = 300,
-  magnetRadius = 10,
-  ringRadius = 10,
-  waveSpeed = 0.4,
-  waveAmplitude = 1,
-  particleSize = 2,
-  lerpSpeed = 0.1,
-  color = '#FF9FFC',
-  autoAnimate = false,
-  particleVariance = 1,
-  rotationSpeed = 0,
-  depthFactor = 1,
-  pulseSpeed = 3,
-  particleShape = 'capsule',
-  fieldStrength = 10
-}) => {
+// Expanded color palette to match the vibrant Antigravity feel
+const colorsList = ['#4285F4', '#EA4335', '#FBBC04', '#34A853', '#8A2BE2', '#00BFFF'];
+
+const AntigravityInner = ({ count = 3000 }) => {
   const meshRef = useRef(null);
   const { viewport } = useThree();
   const dummy = useMemo(() => new THREE.Object3D(), []);
+  const colorObj = useMemo(() => new THREE.Color(), []);
 
-  const lastMousePos = useRef({ x: 0, y: 0 });
-  const lastMouseMoveTime = useRef(0);
-  const virtualMouse = useRef({ x: 0, y: 0 });
+  const globalMouse = useRef({ x: 0, y: 0 });
 
   const particles = useMemo(() => {
     const temp = [];
-    const width = viewport.width || 100;
-    const height = viewport.height || 100;
+    // Ensure the field covers the whole screen even if resized
+    const width = viewport.width * 2 || 100;
+    const height = viewport.height * 2 || 100;
 
     for (let i = 0; i < count; i++) {
-      const t = Math.random() * 100;
-      const factor = 20 + Math.random() * 100;
-      const speed = 0.01 + Math.random() / 200;
-      const xFactor = -50 + Math.random() * 100;
-      const yFactor = -50 + Math.random() * 100;
-      const zFactor = -50 + Math.random() * 100;
-
       const x = (Math.random() - 0.5) * width;
       const y = (Math.random() - 0.5) * height;
-      const z = (Math.random() - 0.5) * 20;
+      const z = (Math.random() - 0.5) * 5; // Keep them closer to the camera focus
 
-      const randomRadiusOffset = (Math.random() - 0.5) * 2;
+      const color = colorsList[Math.floor(Math.random() * colorsList.length)];
+
+      // 1. SHAPE: Make them look like thin dashes instead of square dots
+      const scaleX = Math.random() * 0.2 + 0.05; // Length
+      const scaleY = Math.random() * 0.04 + 0.01; // Thickness
+      const scaleZ = Math.random() * 0.04 + 0.01;
+
+      // 2. ROTATION: Radiating outward - point them towards the center to create a burst
+      const baseRotZ = Math.atan2(y, x);
 
       temp.push({
-        t,
-        factor,
-        speed,
-        xFactor,
-        yFactor,
-        zFactor,
-        mx: x,
-        my: y,
-        mz: z,
+        baseX: x,
+        baseY: y,
+        baseZ: z,
         cx: x,
         cy: y,
-        cz: z,
-        vx: 0,
-        vy: 0,
-        vz: 0,
-        randomRadiusOffset
+        scaleX, scaleY, scaleZ,
+        color,
+        baseRotZ
       });
     }
     return temp;
   }, [count, viewport.width, viewport.height]);
 
-  useFrame(state => {
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      globalMouse.current.x = (e.clientX / window.innerWidth) * 2 - 1;
+      globalMouse.current.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  useEffect(() => {
+    if (meshRef.current) {
+      particles.forEach((p, i) => {
+        colorObj.set(p.color);
+        meshRef.current.setColorAt(i, colorObj);
+      });
+      meshRef.current.instanceColor.needsUpdate = true;
+    }
+  }, [particles, colorObj]);
+
+  useFrame((state) => {
     const mesh = meshRef.current;
     if (!mesh) return;
 
-    const { viewport: v, pointer: m } = state;
+    const { viewport: v } = state;
 
-    const mouseDist = Math.sqrt(Math.pow(m.x - lastMousePos.current.x, 2) + Math.pow(m.y - lastMousePos.current.y, 2));
+    const mouseX = (globalMouse.current.x * v.width) / 2;
+    const mouseY = (globalMouse.current.y * v.height) / 2;
 
-    if (mouseDist > 0.001) {
-      lastMouseMoveTime.current = Date.now();
-      lastMousePos.current = { x: m.x, y: m.y };
-    }
-
-    let destX = (m.x * v.width) / 2;
-    let destY = (m.y * v.height) / 2;
-
-    if (autoAnimate && Date.now() - lastMouseMoveTime.current > 2000) {
-      const time = state.clock.getElapsedTime();
-      destX = Math.sin(time * 0.5) * (v.width / 4);
-      destY = Math.cos(time * 0.5 * 2) * (v.height / 4);
-    }
-
-    const smoothFactor = 0.05;
-    virtualMouse.current.x += (destX - virtualMouse.current.x) * smoothFactor;
-    virtualMouse.current.y += (destY - virtualMouse.current.y) * smoothFactor;
-
-    const targetX = virtualMouse.current.x;
-    const targetY = virtualMouse.current.y;
-
-    const globalRotation = state.clock.getElapsedTime() * rotationSpeed;
+    // 3. PHYSICS: Create a proximity forcefield around the cursor
+    const hoverRadius = 8; // Size of the invisible cursor shield
+    const repelForce = 1.2; // How strongly it pushes them away
 
     particles.forEach((particle, i) => {
-      let { t, speed, mx, my, mz, cz, randomRadiusOffset } = particle;
+      let targetX = particle.baseX;
+      let targetY = particle.baseY;
 
-      t = particle.t += speed / 2;
+      const dx = particle.baseX - mouseX;
+      const dy = particle.baseY - mouseY;
+      const distToMouse = Math.sqrt(dx * dx + dy * dy);
 
-      const projectionFactor = 1 - cz / 50;
-      const projectedTargetX = targetX * projectionFactor;
-      const projectedTargetY = targetY * projectionFactor;
-
-      const dx = mx - projectedTargetX;
-      const dy = my - projectedTargetY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      let targetPos = { x: mx, y: my, z: mz * depthFactor };
-
-      if (dist < magnetRadius) {
-        const angle = Math.atan2(dy, dx) + globalRotation;
-
-        const wave = Math.sin(t * waveSpeed + angle) * (0.5 * waveAmplitude);
-        const deviation = randomRadiusOffset * (5 / (fieldStrength + 0.1));
-
-        const currentRingRadius = ringRadius + wave + deviation;
-
-        targetPos.x = projectedTargetX + currentRingRadius * Math.cos(angle);
-        targetPos.y = projectedTargetY + currentRingRadius * Math.sin(angle);
-        targetPos.z = mz * depthFactor + Math.sin(t) * (1 * waveAmplitude * depthFactor);
+      // If the mouse gets too close, calculate a push vector away from the mouse
+      if (distToMouse < hoverRadius) {
+        const force = (hoverRadius - distToMouse) * repelForce;
+        const angle = Math.atan2(dy, dx);
+        
+        targetX += Math.cos(angle) * force;
+        targetY += Math.sin(angle) * force;
       }
 
-      particle.cx += (targetPos.x - particle.cx) * lerpSpeed;
-      particle.cy += (targetPos.y - particle.cy) * lerpSpeed;
-      particle.cz += (targetPos.z - particle.cz) * lerpSpeed;
+      // Smooth spring logic to snap them back into their original places
+      particle.cx += (targetX - particle.cx) * 0.15;
+      particle.cy += (targetY - particle.cy) * 0.15;
 
-      dummy.position.set(particle.cx, particle.cy, particle.cz);
-
-      dummy.lookAt(projectedTargetX, projectedTargetY, particle.cz);
-      dummy.rotateX(Math.PI / 2);
-
-      const currentDistToMouse = Math.sqrt(
-        Math.pow(particle.cx - projectedTargetX, 2) + Math.pow(particle.cy - projectedTargetY, 2)
-      );
-
-      const distFromRing = Math.abs(currentDistToMouse - ringRadius);
-      let scaleFactor = 1 - distFromRing / 10;
-
-      scaleFactor = Math.max(0, Math.min(1, scaleFactor));
-
-      const finalScale = scaleFactor * (0.8 + Math.sin(t * pulseSpeed) * 0.2 * particleVariance) * particleSize;
-      dummy.scale.set(finalScale, finalScale, finalScale);
-
+      dummy.position.set(particle.cx, particle.cy, particle.baseZ);
+      dummy.rotation.set(0, 0, particle.baseRotZ);
+      dummy.scale.set(particle.scaleX, particle.scaleY, particle.scaleZ);
       dummy.updateMatrix();
-
       mesh.setMatrixAt(i, dummy.matrix);
     });
 
@@ -159,11 +115,9 @@ const AntigravityInner = ({
 
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
-      {particleShape === 'capsule' && <capsuleGeometry args={[0.1, 0.4, 4, 8]} />}
-      {particleShape === 'sphere' && <sphereGeometry args={[0.2, 16, 16]} />}
-      {particleShape === 'box' && <boxGeometry args={[0.3, 0.3, 0.3]} />}
-      {particleShape === 'tetrahedron' && <tetrahedronGeometry args={[0.3]} />}
-      <meshBasicMaterial color={color} />
+      {/* A simple box geometry, which we stretched into dashes via scaling */}
+      <boxGeometry args={[1, 1, 1]} />
+      <meshBasicMaterial />
     </instancedMesh>
   );
 };
